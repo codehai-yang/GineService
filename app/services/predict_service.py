@@ -60,8 +60,8 @@ class PredictService:
         edge_index = np.array(req.edge_index, dtype=np.int32)
         edge_attr  = np.array(req.edge_attr,  dtype=np.float32)
 
-        # 标准化,java里做了标准化这里就不用了
-        # edge_attr, x = nz.normalize_all(edge_attr, x)
+        # 对输入标准化
+        edge_attr, x = nz.normalize_input(edge_attr, x)
 
         # 转tensor并移到设备
         x_t          = torch.tensor(x,          dtype=torch.float).to(self.device)
@@ -70,15 +70,18 @@ class PredictService:
 
         # 推理放到线程池，不阻塞事件循环
         loop = asyncio.get_event_loop()
-        pred = await loop.run_in_executor(
+        pred_norm = await loop.run_in_executor(
             executor, self._do_infer, x_t, edge_index_t, edge_attr_t
         )
 
+        # 反标准化：将模型输出的标准化值还原到原始尺度
+        pred_cost = nz.denormalize_output(pred_norm)
+
         elapsed = (time.time() - start) * 1000
-        print(f"预测完成，结果: {pred:.4f}，耗时: {elapsed:.1f}ms")
+        print(f"预测完成，标准化输出: {pred_norm:.4f}，原始值: {pred_cost:.2f}，耗时: {elapsed:.1f}ms")
 
         return PredictResponse(
-            predicted_cost=pred,
+            predicted_cost=pred_cost,
             elapsed_ms=round(elapsed, 1)
         )
 
