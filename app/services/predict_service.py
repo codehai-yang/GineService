@@ -119,11 +119,22 @@ class PredictService:
         start = time.time()
 
         offset = 0
-        edge_index = np.frombuffer(body[offset:offset+1688],  dtype='>i4').reshape(2, 211).byteswap().newbyteorder('=').copy()
-        offset += 1688
-        edge_attr  = np.frombuffer(body[offset:offset+3376],  dtype='>f4').reshape(211, 4).byteswap().newbyteorder('=').copy()
-        offset += 3376
-        x          = np.frombuffer(body[offset:offset+123200], dtype='>f4').reshape(175, 176).byteswap().newbyteorder('=').copy()
+        # 读取头部 8 字节：前4字节节点数，后4字节边数（大端 int32）
+        num_nodes = int(np.frombuffer(body[offset:offset+4], dtype='>i4')[0])
+        offset += 4
+        num_edges = int(np.frombuffer(body[offset:offset+4], dtype='>i4')[0])
+        offset += 4
+
+        # 根据头部动态计算各字段字节长度
+        edge_index_bytes = 2 * num_edges * 4
+        edge_attr_bytes  = num_edges * config.EDGE_FEAT_DIM * 4
+        x_bytes          = num_nodes * config.NODE_FEAT_DIM * 4
+
+        edge_index = np.frombuffer(body[offset:offset+edge_index_bytes], dtype='>i4').reshape(2, num_edges).byteswap().newbyteorder('=').copy()
+        offset += edge_index_bytes
+        edge_attr  = np.frombuffer(body[offset:offset+edge_attr_bytes],  dtype='>f4').reshape(num_edges, config.EDGE_FEAT_DIM).byteswap().newbyteorder('=').copy()
+        offset += edge_attr_bytes
+        x          = np.frombuffer(body[offset:offset+x_bytes],          dtype='>f4').reshape(num_nodes, config.NODE_FEAT_DIM).byteswap().newbyteorder('=').copy()
 
 
         t1 = time.time()
