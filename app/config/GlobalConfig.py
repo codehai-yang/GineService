@@ -6,7 +6,7 @@
 NUM_BRANCHES   = 211    # 分支数量（边数）
 NUM_NODES      = 175    # 分支点数量（节点数）
 EDGE_FEAT_DIM  = 4      # 边特征维度：通断(3维) + 分支长度(1维)
-NODE_FEAT_DIM  = 176    #分支点特征维度
+NODE_FEAT_DIM  = 200    #分支点特征维度
 
 # 每个样本的字节数（用于seek定位）
 # edge_attr:  211 × 4 × 4字节(float32) = 3376字节
@@ -33,5 +33,5 @@ PATIENCE       = 20      # 早停：连续多少次验证无改善就停止
 # 文件路径
 SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
 TRAIN_FILES  = []  # 训练数据文件列表
-MODEL_SAVE   = 'F:\office\pythonProjects\GINEModel\Pt\\best_model.pt'                      # 模型保存路径
+MODEL_SAVE   = r'F:\office\pythonProjects\GINEModel\Pt\best_model.pt'                      # 模型保存路径
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现

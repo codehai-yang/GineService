@@ -60,8 +60,9 @@ class PredictService:
         edge_index = np.array(req.edge_index, dtype=np.int32)
         edge_attr  = np.array(req.edge_attr,  dtype=np.float32)
 
-        # 对输入标准化
-        edge_attr, x = nz.normalize_input(edge_attr, x)
+        # 对输入标准化（从x形状推导实际节点数）
+        num_nodes = x.shape[0]
+        edge_attr, x = nz.normalize_input(edge_attr, x, num_nodes=num_nodes)
 
         # 转tensor并移到设备
         x_t          = torch.tensor(x,          dtype=torch.float).to(self.device)
@@ -139,19 +140,19 @@ class PredictService:
 
         t1 = time.time()
 
-        # 标准化
-        # edge_attr, x = nz.normalize_all(edge_attr, x)
+        # 标准化（传入实际节点数，用于定位单价矩阵和湿区成本列）
+        edge_attr, x = nz.normalize_input(edge_attr, x, num_nodes=num_nodes)
 
         loop = asyncio.get_event_loop()
         pred = await loop.run_in_executor(
             executor, self._prepare_and_infer, x, edge_index, edge_attr
         )
-
+        pred_cost = nz.denormalize_output(pred)
         elapsed = (time.time() - start) * 1000
         t_parse = (t1 - start) * 1000
         print(f"解析耗时: {t_parse:.1f}ms，总耗时: {elapsed:.1f}ms")
 
-        return PredictResponse(predicted_cost=pred, elapsed_ms=round(elapsed, 1))
+        return PredictResponse(predicted_cost=pred_cost, elapsed_ms=round(elapsed, 1))
     def _prepare_and_infer(self, x, edge_index, edge_attr) -> float:
         x_t          = torch.tensor(x,          dtype=torch.float).to(self.device)
         edge_index_t = torch.tensor(edge_index, dtype=torch.long).to(self.device)
